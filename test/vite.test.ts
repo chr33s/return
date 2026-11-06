@@ -1,5 +1,6 @@
 import { mkdir, symlink, writeFile } from "node:fs/promises"
 import type { IncomingMessage, ServerResponse } from "node:http"
+import { PassThrough } from "node:stream"
 import path from "node:path"
 import assert from "node:assert/strict"
 import { after, describe, it } from "node:test"
@@ -20,26 +21,32 @@ const req = (url: string, method = "GET", extra?: { host?: string, encrypted?: b
 
 const res = () => {
   const headers: Array<[string, string]> = []
-  const out = {
+  const chunks: Buffer[] = []
+  const stream = new PassThrough()
+  stream.on("data", (chunk: Buffer | string) => {
+    chunks.push(Buffer.from(chunk))
+  })
+  const end = stream.end.bind(stream)
+  const out = Object.assign(stream, {
     statusCode: 0,
     headersSent: false,
-    writableEnded: false,
-    body: "",
     headers,
     setHeader(key: string, value: string | number) {
       headers.push([key.toLowerCase(), String(value)])
     },
-    appendHeader(key: string, value: string) {
-      headers.push([key.toLowerCase(), value])
+    appendHeader(key: string, value: string | readonly string[]) {
+      const text = typeof value === "string" ? value : value.join(", ")
+      headers.push([key.toLowerCase(), text])
     },
-    end(body?: Uint8Array | string) {
+    end(this: { headersSent: boolean }, ...args: Parameters<PassThrough["end"]>) {
       this.headersSent = true
-      this.writableEnded = true
-      if (typeof body === "string") this.body = body
-      else if (body !== undefined) this.body = Buffer.from(body).toString()
+      return end(...args)
     }
-  }
-  return out as typeof out & ServerResponse
+  })
+  Object.defineProperty(out, "body", {
+    get: () => Buffer.concat(chunks).toString()
+  })
+  return out as PassThrough & ServerResponse & { headers: Array<[string, string]>, body: string }
 }
 
 describe("vite prefix", () => {
@@ -311,6 +318,35 @@ describe("vite prefix", () => {
       assert.equal(blocked.body, "", target)
       assert.equal(blocked.writableEnded, true, target)
     }
+  })
+
+  it("strips the vite base before reading dist and leaves it for Vite", async () => {
+    const dist = path.join(root, "basedist")
+    await mkdir(path.join(dist, "assets"), { recursive: true })
+    await writeFile(path.join(dist, "assets", "main.js"), "js")
+    const file = res()
+    await dispatch(req("/app/assets/main.js"), file, undefined, {
+      prefix,
+      base: "/app/",
+      dist,
+      handler: async () => new Response("no")
+    })
+    assert.equal(file.statusCode, 200)
+    assert.equal(file.body, "js")
+
+    const spa = res()
+    let nexted = 0
+    await dispatch(req("/app/assets/main.js"), spa, () => {
+      nexted += 1
+    }, {
+      prefix,
+      base: "/app/",
+      dist,
+      handler: async () => new Response("no")
+    })
+    assert.equal(nexted, 1)
+    assert.equal(spa.statusCode, 0)
+    assert.equal(spa.body, "")
   })
 })
 

@@ -17,7 +17,9 @@ try {
 const server = listen(web.handler)
 
 const shutdown = async () => {
-  server.close()
+  await new Promise<void>((resolve, reject) => {
+    server.close(error => error ? reject(error) : resolve())
+  })
   await web.dispose()
   process.exit(0)
 }

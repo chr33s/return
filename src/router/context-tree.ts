@@ -26,19 +26,28 @@ export const buildDirectory = <P, L>(
     return Context.merge(parentContext, built.value) as Context.Context<P | Out<L>>
   }) as Effect.Effect<Context.Context<P | Out<L>>, Err<L>, Exclude<In<L>, P | Scope.Scope>>
 
-type IsLayer<S> = S extends Layer.Layer<infer _A, infer _E, infer _R> ? S : never
+type AsLayer<S> = S extends Layer.Layer<infer A, infer E, infer R> ? Layer.Layer<A, E, R> : never
 
-type Chosen<P, K extends string, L> = undefined extends P
-  ? NonNullable<P> extends Record<K, infer S> ? [IsLayer<S>] extends [never] ? L : IsLayer<S>
-  : L
-  : P extends Record<K, infer S> ? [IsLayer<S>] extends [never] ? L : IsLayer<S>
-  : L
+type ProviderValue<P, K extends string> = [P] extends [undefined]
+  ? never
+  : K extends keyof NonNullable<P> ? NonNullable<P>[K]
+  : never
+
+/** Services both layers provide, with the requirements and errors of either. */
+type EitherLayer<L, S> = Layer.Layer<Out<L> & Out<S>, Err<L> | Err<S>, In<L> | In<S>>
+
+type Chosen<P, K extends string, L> = [ProviderValue<P, K>] extends [never] ? L
+  : [AsLayer<NonNullable<ProviderValue<P, K>>>] extends [never] ? L
+  : undefined extends ProviderValue<P, K>
+    ? EitherLayer<L, AsLayer<NonNullable<ProviderValue<P, K>>>>
+    : AsLayer<ProviderValue<P, K>>
 
 /**
  * Uses a test substitute for a provider site when that key is present, and
- * the production layer otherwise. The return type is the substitute alone
- * when the key is part of `providers`, so a substitute that drops a service
- * does not keep the production output in the type.
+ * the production layer otherwise. A required key's type is the substitute
+ * alone, so a substitute that drops a service does not keep the production
+ * output. An optional key may be either layer, so its type provides only
+ * the services both provide.
  */
 export const selectSite = <L, P, const K extends string>(
   production: L,

@@ -44,7 +44,7 @@ Node 26 runs the TypeScript. Both packages pin TypeScript 7. From `spec/`, the s
 
 ## Vite
 
-`@chr33s/return/vite` puts this router and a Vite SPA on one origin. Vite 7 or 8 is an optional peer dependency.
+`@chr33s/return/vite` puts this router and a Vite SPA on one origin. Vite 8.3 or later, before 9, is an optional peer dependency.
 
 ```ts
 import { returnVite, listen } from "@chr33s/return/vite"

@@ -34,3 +34,11 @@ export const claimedByBase = (pathname: string, base: string) => {
   if (base === "/") return false
   return pathname === base || pathname.startsWith(base)
 }
+
+/** `/app/assets/main.js` with base `/app/` is `/assets/main.js` inside `dist`. */
+export const stripBase = (pathname: string, base: string) => {
+  if (base === "/") return pathname
+  if (pathname === base) return "/"
+  if (pathname.startsWith(base)) return `/${pathname.slice(base.length)}`
+  return pathname
+}

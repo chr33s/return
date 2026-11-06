@@ -1,4 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
+import { Readable } from "node:stream"
+import { pipeline } from "node:stream/promises"
+import type { ReadableStream as NodeReadableStream } from "node:stream/web"
 
 export const nodeRequestToWeb = async (req: IncomingMessage, requestUrl?: URL): Promise<Request> => {
   const host = req.headers.host ?? "127.0.0.1:3000"
@@ -14,9 +17,8 @@ export const nodeRequestToWeb = async (req: IncomingMessage, requestUrl?: URL): 
   }
   const method = req.method ?? "GET"
   if (method === "GET" || method === "HEAD") return new Request(url, { method, headers })
-  const chunks: Buffer[] = []
-  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
-  return new Request(url, { method, headers, body: Buffer.concat(chunks) })
+  const body = Readable.toWeb(Readable.from(req)) as ReadableStream<Uint8Array>
+  return new Request(url, { method, headers, body, duplex: "half" } as RequestInit)
 }
 
 export const writeWebResponse = async (res: ServerResponse, response: Response, method?: string) => {
@@ -25,11 +27,20 @@ export const writeWebResponse = async (res: ServerResponse, response: Response, 
     res.appendHeader(key, value)
   })
   if (method === "HEAD" || response.body === null) {
-    await response.body?.cancel()
+    await response.body?.cancel().catch(() => {})
     res.end()
     return
   }
-  res.end(Buffer.from(await response.arrayBuffer()))
+  const stream = Readable.fromWeb(response.body as NodeReadableStream)
+  const stop = () => {
+    if (!res.writableFinished) stream.destroy()
+  }
+  res.once("close", stop)
+  try {
+    await pipeline(stream, res)
+  } finally {
+    res.off("close", stop)
+  }
 }
 
 export const listen = (
@@ -45,6 +56,7 @@ export const listen = (
         await writeWebResponse(res, response, req.method)
       } catch (error) {
         console.error(error)
+        if (res.writableEnded) return
         if (!res.headersSent) res.statusCode = 500
         res.end()
       }

@@ -89,7 +89,9 @@ export const startDevHost = async () => {
   const shutdown = async () => {
     watcher.close()
     if (timer !== undefined) clearTimeout(timer)
-    server.close()
+    await new Promise<void>((resolve, reject) => {
+      server.close(error => error ? reject(error) : resolve())
+    })
     await controller.dispose()
     process.exit(0)
   }

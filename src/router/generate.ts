@@ -147,8 +147,18 @@ const sameSet = (left: readonly string[], right: readonly string[]) => {
   return a.every((key, index) => key === b[index])
 }
 
+const encodeSegment = (segment: string) => {
+  let out = ""
+  for (const char of segment) {
+    if (/[A-Za-z0-9]/.test(char)) out += char
+    else out += `_${char.codePointAt(0)!.toString(16)}_`
+  }
+  return out
+}
+
+/** Different directories stay different identifiers. `a-b`, `a_b`, `a/b`, and `root` do not collide. */
 const ident = (prefix: string, dir: string) => {
-  const body = dir === "" ? "root" : dir.replace(/\[/g, "_").replace(/\]/g, "").replace(/[^A-Za-z0-9_]/g, "_")
+  const body = dir === "" ? "root" : `d_${dir.split("/").map(encodeSegment).join("_s_")}`
   return `${prefix}_${body}`
 }
 
@@ -414,7 +424,7 @@ export const generateProject = async (options: GenerateOptions): Promise<Generat
       } else {
         seenIds.set(route.operationId, file)
       }
-      if (names.length > 0) {
+      if (route.options.params !== undefined || names.length > 0) {
         const keys = route.options.params === undefined
           ? { error: "params schema has no literal keys" }
           : paramKeys(route.options.params)

@@ -2,7 +2,7 @@ import { lstat, readFile, realpath, stat } from "node:fs/promises"
 import type { IncomingMessage, ServerResponse } from "node:http"
 import path from "node:path"
 import { nodeRequestToWeb, writeWebResponse } from "../router/listen.ts"
-import { claimedByBase, matchesPrefix, normalizeBase, stripPrefix } from "./prefix.ts"
+import { claimedByBase, matchesPrefix, normalizeBase, stripBase, stripPrefix } from "./prefix.ts"
 import { parseOriginForm, requestHost, requestScheme, requestUrl } from "./request-target.ts"
 
 export type Next = (error?: unknown) => void
@@ -161,14 +161,15 @@ const forward = async (
   res: ServerResponse,
   next: Next | undefined,
   dist: string | undefined,
-  pathname: string
+  pathname: string,
+  base: string
 ) => {
   if (next !== undefined) {
     next()
     return
   }
   if (dist !== undefined) {
-    await serveStatic(res, dist, pathname, req.method ?? "GET")
+    await serveStatic(res, dist, stripBase(pathname, base), req.method ?? "GET")
     return
   }
   end(res, 404)
@@ -194,7 +195,7 @@ export const dispatch = async (
     }
     const base = normalizeBase(options.base)
     if (claimedByBase(origin.pathname, base) || !matchesPrefix(origin.pathname, options.prefix)) {
-      await forward(req, res, next, options.dist, origin.pathname)
+      await forward(req, res, next, options.dist, origin.pathname, base)
       return
     }
     const url = requestUrl(requestScheme(req), host, stripPrefix(origin.pathname, options.prefix), origin.search)

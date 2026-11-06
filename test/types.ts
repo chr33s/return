@@ -41,6 +41,15 @@ declare function launchWithoutUsers(layer: Layer.Layer<never, never, Platform | 
 // @ts-expect-error dropping the users layer leaves Users required
 launchWithoutUsers(dropped)
 
+const optionalUsers = makeApiLive({
+  providers: {
+    users: undefined as Layer.Layer<never> | undefined
+  } satisfies { readonly users?: Layer.Layer<never> }
+})
+type OptionalNeeds = Exclude<Unwrap<Services<typeof optionalUsers>>, Platform | AuditLog | RequireUser>
+type _OptionalUsers = Users extends OptionalNeeds ? true : never
+const _optionalUsers: _OptionalUsers = true
+
 makeApiLive({
   providers: {
     // @ts-expect-error unknown provider site

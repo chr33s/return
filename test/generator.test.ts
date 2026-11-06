@@ -78,6 +78,7 @@ describe("generator", () => {
     )
     await writeRoute(path.join(bad.routesDir, "users/[id]/posts/route.ts"), `export const GET = Route.get("posts", { params: { id: Schema.String } }, () => Effect.void)`)
     await writeRoute(path.join(bad.routesDir, "users/[slug]/comments/route.ts"), `export const GET = Route.get("comments", { params: { slug: Schema.String } }, () => Effect.void)`)
+    await writeRoute(path.join(bad.routesDir, "health/route.ts"), `export const GET = Route.get("health", { params: { id: Schema.String } }, () => Effect.void)`)
 
     const result = await generateProject({
       routesDir: bad.routesDir,
@@ -89,6 +90,7 @@ describe("generator", () => {
       assert.match(joined, new RegExp(segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))
     }
     assert.match(joined, /params keys \[userId\] do not match path segments \[id\]/)
+    assert.match(joined, /params keys \[id\] do not match path segments \[\]/)
     assert.match(joined, /params schema has no literal keys/)
     assert.match(joined, /operation id "same" is already used/)
     assert.match(joined, /operation id "1bad" is not an identifier/)
@@ -150,6 +152,25 @@ describe("generator", () => {
     assert.equal(stale.wrote, false)
     assert.match(stale.diagnostics.join("\n"), /generated file is stale/)
     assert.equal(await readFile(ok.outFile, "utf8"), `${text}\n`)
+  })
+
+  it("keeps directory identifiers distinct", async () => {
+    const dirs = await tree("idents")
+    await writeRoute(path.join(dirs.routesDir, "route.ts"), `export const GET = Route.get("root", {}, () => Effect.void)`)
+    await writeFile(path.join(dirs.routesDir, "layer.ts"), `import { Layer } from "effect"\nexport const Live = Layer.empty\n`)
+    await writeRoute(path.join(dirs.routesDir, "root/route.ts"), `export const GET = Route.get("namedRoot", {}, () => Effect.void)`)
+    await writeFile(path.join(dirs.routesDir, "root/layer.ts"), `import { Layer } from "effect"\nexport const Live = Layer.empty\n`)
+    for (const [dir, id] of [["a-b", "dash"], ["a_b", "under"], ["a/b", "slash"]] as const) {
+      await writeRoute(path.join(dirs.routesDir, dir, "route.ts"), `export const GET = Route.get(${JSON.stringify(id)}, {}, () => Effect.void)`)
+      await writeFile(path.join(dirs.routesDir, dir, "layer.ts"), `import { Layer } from "effect"\nexport const Live = Layer.empty\n`)
+    }
+    const result = await generateProject({ routesDir: dirs.routesDir, outFile: dirs.outFile, projectRoot: dirs.root })
+    assert.deepEqual(result.diagnostics, [])
+    const text = await readFile(dirs.outFile, "utf8")
+    const scopes = [...text.matchAll(/const (scope_[A-Za-z0-9_]+)/g)].map(match => match[1])
+    assert.equal(new Set(scopes).size, scopes.length)
+    assert.ok(scopes.includes("scope_root"))
+    assert.ok(scopes.some(name => name !== "scope_root" && name.includes("root")))
   })
 
   it("checks the committed routes.gen.ts", async () => {

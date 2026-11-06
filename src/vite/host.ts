@@ -54,6 +54,7 @@ export const createReturnHost = (options: ReturnHostOptions, watchRoutes: boolea
   const projectRoot = options.projectRoot ?? process.cwd()
   const routesDir = path.resolve(projectRoot, options.routesDir)
   const outFile = path.resolve(projectRoot, options.outFile)
+  const hostToken = crypto.randomUUID()
   let generation = 0
   let watcher: FSWatcher | undefined
   let timer: NodeJS.Timeout | undefined
@@ -67,11 +68,11 @@ export const createReturnHost = (options: ReturnHostOptions, watchRoutes: boolea
         routesDir,
         outFile,
         projectRoot,
-        importer: (file) => importGeneration(file, gen)
+        importer: (file) => importGeneration(file, `${hostToken}.${gen}`)
       })
     },
     load: async () => {
-      const mod = await importGeneration(outFile, String(++generation)) as {
+      const mod = await importGeneration(outFile, `${hostToken}.${++generation}`) as {
         makeApiLive: () => unknown
       }
       const watched = observeBuild(options.createLayer(mod) as never)

@@ -16,11 +16,10 @@ interface OpenHost {
 /**
  * One origin for a Vite SPA and this file router.
  *
- * On Vite 7 and 8, `use` inside `configureServer` runs after the host check and
- * before Vite's transform, static, and HTML middleware. Returning a function
- * would install the API after the HTML fallback, and an API 404 would become
- * the SPA. Vite 6 runs this hook before the host check, so the peer range
- * starts at 7.
+ * On Vite 8.3 and later, `use` inside `configureServer` runs after the host
+ * check and before Vite's transform, static, and HTML middleware. Returning a
+ * function would install the API after the HTML fallback. `closeServer` and
+ * `closePreviewServer` exist from 8.3.0, so the peer range starts there.
  *
  * A restart builds the next server before `closeServer` runs, so the oldest
  * host is the one that closes.
