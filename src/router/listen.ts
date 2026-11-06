@@ -1,8 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
 
-export const nodeRequestToWeb = async (req: IncomingMessage): Promise<Request> => {
+export const nodeRequestToWeb = async (req: IncomingMessage, requestUrl?: URL): Promise<Request> => {
   const host = req.headers.host ?? "127.0.0.1:3000"
-  const url = new URL(req.url ?? "/", `http://${host}`)
+  const url = requestUrl ?? new URL(req.url ?? "/", `http://${host}`)
   const headers = new Headers()
   for (const [key, value] of Object.entries(req.headers)) {
     if (value === undefined) continue

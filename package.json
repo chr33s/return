@@ -8,7 +8,8 @@
     "node": ">=26 <27"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./vite": "./src/vite.ts"
   },
   "bin": {
     "return-generate": "./src/router/cli.ts"
@@ -23,8 +24,17 @@
   "dependencies": {
     "effect": "4.1.0"
   },
+  "peerDependencies": {
+    "vite": ">=6 <9"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "26.6.6",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vite": "^8.3.6"
   }
 }
