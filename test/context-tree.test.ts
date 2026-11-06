@@ -1,8 +1,8 @@
 import { Layer } from "effect"
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { Database, leftDatabase, rootDatabase, seen } from "../src/routes/tree/services.ts"
-import { launch, request } from "./launch.ts"
+import { Database, leftDatabase, rootDatabase, seen } from "../spec/src/routes/tree/services.ts"
+import { launch, request } from "../spec/test/launch.ts"
 
 const substituteDatabase = { id: "substitute", token: {} }
 

@@ -8,12 +8,12 @@
     "node": ">=26 <27"
   },
   "scripts": {
-    "generate": "node src/router/generate.ts",
-    "generate:check": "node src/router/generate.ts --check",
+    "generate": "node src/router/generate.ts --routes spec/src/routes --out spec/src/routes.gen.ts",
+    "generate:check": "node src/router/generate.ts --routes spec/src/routes --out spec/src/routes.gen.ts --check",
     "typecheck": "tsc --noEmit",
-    "test": "node src/router/generate.ts --check && tsc --noEmit && node --test src/routes/users/route.test.ts test/**/*.test.ts",
-    "start": "node src/main.ts",
-    "dev": "node src/router/dev-host.ts"
+    "test": "node src/router/generate.ts --routes spec/src/routes --out spec/src/routes.gen.ts --check && tsc --noEmit && node --test test/**/*.test.ts spec/test/**/*.test.ts",
+    "start": "node spec/src/main.ts",
+    "dev": "node spec/src/dev-host.ts"
   },
   "dependencies": {
     "effect": "4.1.0"

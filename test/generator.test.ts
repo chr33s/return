@@ -153,7 +153,14 @@ describe("generator", () => {
   })
 
   it("checks the committed routes.gen.ts", async () => {
-    const result = await exec(process.execPath, ["src/router/generate.ts", "--check"], {
+    const result = await exec(process.execPath, [
+      "src/router/generate.ts",
+      "--routes",
+      "spec/src/routes",
+      "--out",
+      "spec/src/routes.gen.ts",
+      "--check"
+    ], {
       cwd: projectRoot
     })
     assert.equal(result.stdout, "unchanged\n")

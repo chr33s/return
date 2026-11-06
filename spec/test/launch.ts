@@ -1,6 +1,6 @@
 import { HttpRouter } from "effect/http"
 import { applicationLayer } from "../src/application.ts"
-import { routerConfig } from "../src/router/config.ts"
+import { routerConfig } from "../../src/router/config.ts"
 import { makeApiLive } from "../src/routes.gen.ts"
 
 export const launch = (options?: Parameters<typeof makeApiLive>[0]) => {

@@ -3,17 +3,17 @@ import { registerHooks } from "node:module"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import { HttpRouter } from "effect/http"
-import { applicationLayer } from "../application.ts"
-import { generateProject } from "./generate.ts"
-import { listen } from "./listen.ts"
-import { observeBuild } from "./observe-build.ts"
-import { createReloadController } from "./reload.ts"
-import { routerConfig } from "./config.ts"
+import { applicationLayer } from "./application.ts"
+import { generateProject } from "../../src/router/generate.ts"
+import { listen } from "../../src/router/listen.ts"
+import { observeBuild } from "../../src/router/observe-build.ts"
+import { createReloadController } from "../../src/router/reload.ts"
+import { routerConfig } from "../../src/router/config.ts"
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(here, "../..")
-const routesDir = path.join(projectRoot, "src/routes")
-const outFile = path.join(projectRoot, "src/routes.gen.ts")
+const routesDir = path.join(projectRoot, "spec/src/routes")
+const outFile = path.join(projectRoot, "spec/src/routes.gen.ts")
 
 let generation = 0
 let hooksReady = false

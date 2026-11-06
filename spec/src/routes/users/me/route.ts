@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import { Route } from "../../../router/Route.ts"
+import { Route } from "../../../../../src/router/Route.ts"
 
 export let meHits = 0
 

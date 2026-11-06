@@ -355,7 +355,7 @@ export const generateProject = async (options: GenerateOptions): Promise<Generat
     let importsGen = false
     for (const specifier of staticSpecifiers(source)) {
       if (importsGenerated(file, specifier, options.outFile)) {
-        report(file, "must not import src/routes.gen.ts")
+        report(file, `must not import ${displayPath(options.outFile, projectRoot)}`)
         importsGen = true
       }
     }
@@ -510,18 +510,28 @@ const insertPath = (
 const isMain = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
 if (isMain) {
-  const here = path.dirname(fileURLToPath(import.meta.url))
-  const projectRoot = path.resolve(here, "../..")
-  const result = await generateProject({
-    routesDir: path.join(projectRoot, "src/routes"),
-    outFile: path.join(projectRoot, "src/routes.gen.ts"),
-    projectRoot,
-    check: process.argv.includes("--check")
-  })
-  if (result.diagnostics.length > 0) {
-    for (const line of result.diagnostics) console.error(line)
+  const flag = (name: string) => {
+    const index = process.argv.indexOf(name)
+    return index === -1 ? undefined : process.argv[index + 1]
+  }
+  const routesArg = flag("--routes")
+  const outArg = flag("--out")
+  if (routesArg === undefined || outArg === undefined || routesArg.startsWith("--") || outArg.startsWith("--")) {
+    console.error("usage: node src/router/generate.ts --routes <dir> --out <file> [--check]")
     process.exitCode = 1
   } else {
-    process.stdout.write(result.wrote ? "wrote\n" : "unchanged\n")
+    const projectRoot = process.cwd()
+    const result = await generateProject({
+      routesDir: path.resolve(projectRoot, routesArg),
+      outFile: path.resolve(projectRoot, outArg),
+      projectRoot,
+      check: process.argv.includes("--check")
+    })
+    if (result.diagnostics.length > 0) {
+      for (const line of result.diagnostics) console.error(line)
+      process.exitCode = 1
+    } else {
+      process.stdout.write(result.wrote ? "wrote\n" : "unchanged\n")
+    }
   }
 }

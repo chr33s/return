@@ -1,7 +1,7 @@
 import { Effect } from "effect"
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { UserNotFound, Users, createUsers, getUserById } from "./domain.ts"
+import { UserNotFound, Users, createUsers, getUserById } from "../src/routes/users/domain.ts"
 
 describe("users domain", () => {
   it("returns a seeded user", async () => {
