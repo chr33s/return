@@ -4,10 +4,10 @@ import type { Path } from "effect/Path"
 import type { Generator } from "effect/http/Etag"
 import type { HttpPlatform } from "effect/http/HttpPlatform"
 import type { HttpRouter } from "effect/http"
-import { RequireUser } from "../src/auth.js"
-import { Route } from "../src/router/Route.js"
-import { ApiLive, makeApiLive } from "../src/routes.gen.js"
-import { AuditLog, Users } from "../src/routes/users/domain.js"
+import { RequireUser } from "../src/auth.ts"
+import { Route } from "../src/router/Route.ts"
+import { ApiLive, makeApiLive } from "../src/routes.gen.ts"
+import { AuditLog, Users } from "../src/routes/users/domain.ts"
 
 type Services<L> = L extends Layer.Layer<infer _A, infer _E, infer R> ? R : never
 type Unwrap<R> = R extends any ? R extends HttpRouter.Request<any, infer S> ? Unwrap<S> : R : never

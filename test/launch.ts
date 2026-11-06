@@ -1,7 +1,7 @@
 import { HttpRouter } from "effect/http"
-import { applicationLayer } from "../src/application.js"
-import { routerConfig } from "../src/router/config.js"
-import { makeApiLive } from "../src/routes.gen.js"
+import { applicationLayer } from "../src/application.ts"
+import { routerConfig } from "../src/router/config.ts"
+import { makeApiLive } from "../src/routes.gen.ts"
 
 export const launch = (options?: Parameters<typeof makeApiLive>[0]) => {
   const layer = applicationLayer(makeApiLive(options))

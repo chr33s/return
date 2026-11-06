@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect"
-import { AuditLog, User, Users } from "./domain.js"
-import { Route } from "../../router/Route.js"
+import { AuditLog, User, Users } from "./domain.ts"
+import { Route } from "../../router/Route.ts"
 
 export const GET = Route.get(
   "listUsers",

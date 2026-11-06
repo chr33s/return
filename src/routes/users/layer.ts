@@ -1,3 +1,3 @@
-import { UsersLive } from "./domain.js"
+import { UsersLive } from "./domain.ts"
 
 export const Live = UsersLive

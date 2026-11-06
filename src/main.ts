@@ -1,9 +1,9 @@
 import { HttpRouter } from "effect/http"
-import { applicationLayer } from "./application.js"
-import { routerConfig } from "./router/config.js"
-import { listen } from "./router/listen.js"
-import { observeBuild } from "./router/observe-build.js"
-import { ApiLive } from "./routes.gen.js"
+import { applicationLayer } from "./application.ts"
+import { routerConfig } from "./router/config.ts"
+import { listen } from "./router/listen.ts"
+import { observeBuild } from "./router/observe-build.ts"
+import { ApiLive } from "./routes.gen.ts"
 
 const watched = observeBuild(applicationLayer(ApiLive))
 const web = HttpRouter.toWebHandler(watched.layer, { disableLogger: true, routerConfig })

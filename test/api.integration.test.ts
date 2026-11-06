@@ -2,12 +2,12 @@ import { Layer } from "effect"
 import { HttpRouter } from "effect/http"
 import assert from "node:assert/strict"
 import { afterEach, beforeEach, describe, it } from "node:test"
-import { CurrentUser } from "../src/auth.js"
-import { applicationLayer } from "../src/application.js"
-import { routerConfig } from "../src/router/config.js"
-import { makeApiLive } from "../src/routes.gen.js"
-import { meHits } from "../src/routes/users/me/route.js"
-import { launch, request } from "./launch.js"
+import { CurrentUser } from "../src/auth.ts"
+import { applicationLayer } from "../src/application.ts"
+import { routerConfig } from "../src/router/config.ts"
+import { makeApiLive } from "../src/routes.gen.ts"
+import { meHits } from "../src/routes/users/me/route.ts"
+import { launch, request } from "./launch.ts"
 
 const text = (response: Response) => response.text()
 

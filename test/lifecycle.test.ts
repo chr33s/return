@@ -2,12 +2,12 @@ import { Effect, Exit, Layer, Scope } from "effect"
 import { HttpRouter, HttpServer } from "effect/http"
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { RequireUserLive } from "../src/auth.js"
-import { routerConfig } from "../src/router/config.js"
-import { makeApiLive } from "../src/routes.gen.js"
-import { AuditLogLive, UsersLive } from "../src/routes/users/domain.js"
-import { Captured, Database, rootDatabase } from "../src/routes/tree/services.js"
-import { request } from "./launch.js"
+import { RequireUserLive } from "../src/auth.ts"
+import { routerConfig } from "../src/router/config.ts"
+import { makeApiLive } from "../src/routes.gen.ts"
+import { AuditLogLive, UsersLive } from "../src/routes/users/domain.ts"
+import { Captured, Database, rootDatabase } from "../src/routes/tree/services.ts"
+import { request } from "./launch.ts"
 
 const events: string[] = []
 

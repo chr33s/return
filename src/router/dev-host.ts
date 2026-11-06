@@ -1,14 +1,14 @@
 import { watch } from "node:fs"
+import { registerHooks } from "node:module"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import { HttpRouter } from "effect/http"
-import { register } from "tsx/esm/api"
-import { applicationLayer } from "../application.js"
-import { generateProject } from "./generate.js"
-import { listen } from "./listen.js"
-import { observeBuild } from "./observe-build.js"
-import { createReloadController } from "./reload.js"
-import { routerConfig } from "./config.js"
+import { applicationLayer } from "../application.ts"
+import { generateProject } from "./generate.ts"
+import { listen } from "./listen.ts"
+import { observeBuild } from "./observe-build.ts"
+import { createReloadController } from "./reload.ts"
+import { routerConfig } from "./config.ts"
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(here, "../..")
@@ -16,51 +16,68 @@ const routesDir = path.join(projectRoot, "src/routes")
 const outFile = path.join(projectRoot, "src/routes.gen.ts")
 
 let generation = 0
+let hooksReady = false
+
+const ensureReloadHooks = () => {
+  if (hooksReady) return
+  hooksReady = true
+  registerHooks({
+    resolve(specifier, context, nextResolve) {
+      const parent = context.parentURL ?? ""
+      let gen = ""
+      try {
+        gen = new URL(parent).searchParams.get("gen") ?? ""
+      } catch {
+        gen = ""
+      }
+      const resolved = nextResolve(specifier, context)
+      if (gen === "" || !resolved.url.startsWith("file:") || resolved.url.includes("/node_modules/")) {
+        return resolved
+      }
+      const url = new URL(resolved.url)
+      if (url.searchParams.get("gen") === gen) return resolved
+      url.searchParams.set("gen", gen)
+      return { ...resolved, url: url.href }
+    }
+  })
+}
+
+const importGeneration = (file: string, gen: string) => {
+  const url = pathToFileURL(file)
+  url.searchParams.set("gen", gen)
+  return import(url.href)
+}
 
 const loadGraph = async () => {
-  const namespace = `routes-${++generation}`
-  const api = register({ namespace })
-  let releaseNamespace = true
-  let disposeWeb: (() => Promise<void>) | undefined
+  ensureReloadHooks()
+  const mod = await importGeneration(outFile, String(++generation)) as {
+    makeApiLive: () => unknown
+  }
+  const watched = observeBuild(applicationLayer(mod.makeApiLive() as never))
+  const web = HttpRouter.toWebHandler(watched.layer as never, { disableLogger: true, routerConfig })
   try {
-    const mod = await api.import("../routes.gen.ts", import.meta.url) as {
-      makeApiLive: () => unknown
-    }
-    const watched = observeBuild(applicationLayer(mod.makeApiLive() as never))
-    const web = HttpRouter.toWebHandler(watched.layer as never, { disableLogger: true, routerConfig })
-    disposeWeb = web.dispose
     await watched.ready
-    releaseNamespace = false
-    return {
-      handler: web.handler,
-      dispose: async () => {
-        await web.dispose()
-        await api.unregister()
-      }
-    }
   } catch (error) {
-    if (disposeWeb !== undefined) await disposeWeb()
+    await web.dispose()
     throw error
-  } finally {
-    if (releaseNamespace) await api.unregister()
+  }
+  return {
+    handler: web.handler,
+    dispose: () => web.dispose()
   }
 }
 
 export const startDevHost = async () => {
+  ensureReloadHooks()
   const controller = createReloadController({
-    generate: async () => {
-      const namespace = `generate-${++generation}`
-      const api = register({ namespace })
-      try {
-        return await generateProject({
-          routesDir,
-          outFile,
-          projectRoot,
-          importer: (file) => api.import(pathToFileURL(file).href, import.meta.url)
-        })
-      } finally {
-        await api.unregister()
-      }
+    generate: () => {
+      const gen = String(++generation)
+      return generateProject({
+        routesDir,
+        outFile,
+        projectRoot,
+        importer: (file) => importGeneration(file, gen)
+      })
     },
     load: loadGraph
   })

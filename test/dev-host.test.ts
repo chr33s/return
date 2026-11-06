@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { createReloadController, drainMsDefault } from "../src/router/reload.js"
+import { createReloadController, drainMsDefault } from "../src/router/reload.ts"
 
 describe("dev host reload", () => {
   it("serves 503 until a graph is running and keeps the old graph on failure", async () => {

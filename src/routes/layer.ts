@@ -1,5 +1,5 @@
 import { Effect, Layer } from "effect"
-import { Captured, Database, rootDatabase } from "./tree/services.js"
+import { Captured, Database, rootDatabase } from "./tree/services.ts"
 
 const captured = Layer.effect(
   Captured,

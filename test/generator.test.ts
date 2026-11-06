@@ -5,7 +5,7 @@ import { promisify } from "node:util"
 import assert from "node:assert/strict"
 import { after, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
-import { generateProject } from "../src/router/generate.js"
+import { generateProject } from "../src/router/generate.ts"
 
 const exec = promisify(execFile)
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
@@ -14,7 +14,7 @@ const fixtures = path.join(projectRoot, ".generate-fixtures")
 const routeImport = (file: string) => {
   let relative = path.relative(path.dirname(file), path.join(projectRoot, "src/router/Route.ts")).split(path.sep).join("/")
   if (!relative.startsWith(".")) relative = `./${relative}`
-  return relative.replace(/\.ts$/, ".js")
+  return relative
 }
 
 const writeRoute = async (file: string, body: string) => {
@@ -74,7 +74,7 @@ describe("generator", () => {
     await writeFile(path.join(bad.routesDir, "orphan/layer.ts"), `import { Layer } from "effect"\nexport const Live = Layer.empty\n`)
     await writeRoute(
       path.join(bad.routesDir, "cycle/route.ts"),
-      `import { Api } from "../../routes.gen.js"\nexport const GET = Route.get("cycle", {}, () => Effect.void)\nvoid Api\n`
+      `import { Api } from "../../routes.gen.ts"\nexport const GET = Route.get("cycle", {}, () => Effect.void)\nvoid Api\n`
     )
     await writeRoute(path.join(bad.routesDir, "users/[id]/posts/route.ts"), `export const GET = Route.get("posts", { params: { id: Schema.String } }, () => Effect.void)`)
     await writeRoute(path.join(bad.routesDir, "users/[slug]/comments/route.ts"), `export const GET = Route.get("comments", { params: { slug: Schema.String } }, () => Effect.void)`)
@@ -121,7 +121,7 @@ describe("generator", () => {
     )
     await writeFile(
       path.join(ok.routesDir, "reexport/route.ts"),
-      `export { GET } from "./handlers.js"\n`
+      `export { GET } from "./handlers.ts"\n`
     )
     const first = await generateProject({ routesDir: ok.routesDir, outFile: ok.outFile, projectRoot: ok.root })
     assert.deepEqual(first.diagnostics, [])
@@ -153,7 +153,7 @@ describe("generator", () => {
   })
 
   it("checks the committed routes.gen.ts", async () => {
-    const result = await exec(process.execPath, ["--import", "tsx", "src/router/generate.ts", "--check"], {
+    const result = await exec(process.execPath, ["src/router/generate.ts", "--check"], {
       cwd: projectRoot
     })
     assert.equal(result.stdout, "unchanged\n")

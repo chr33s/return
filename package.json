@@ -4,20 +4,22 @@
   "private": true,
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=26 <27"
+  },
   "scripts": {
-    "generate": "tsx src/router/generate.ts",
-    "generate:check": "tsx src/router/generate.ts --check",
+    "generate": "node src/router/generate.ts",
+    "generate:check": "node src/router/generate.ts --check",
     "typecheck": "tsc --noEmit",
-    "test": "tsx src/router/generate.ts --check && tsc --noEmit && node --import tsx --test src/routes/users/route.test.ts test/**/*.test.ts",
-    "start": "tsx src/main.ts",
-    "dev": "tsx src/router/dev-host.ts"
+    "test": "node src/router/generate.ts --check && tsc --noEmit && node --test src/routes/users/route.test.ts test/**/*.test.ts",
+    "start": "node src/main.ts",
+    "dev": "node src/router/dev-host.ts"
   },
   "dependencies": {
     "effect": "4.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22.19.1",
-    "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2"
   }
 }

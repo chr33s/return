@@ -2,7 +2,7 @@ import { Layer, Schema } from "effect"
 import { readdir, readFile, mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { pathToFileURL, fileURLToPath } from "node:url"
-import { isRoute, type AnyRoute, type RouteMethodName } from "./Route.js"
+import { isRoute, type AnyRoute, type RouteMethodName } from "./Route.ts"
 
 const methods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const
 const endpointFunction: Record<RouteMethodName, string> = {
@@ -58,7 +58,7 @@ const displayPath = (file: string, projectRoot: string) => {
 const specifierBetween = (fromFile: string, targetFile: string) => {
   let relative = posix(path.relative(path.dirname(fromFile), targetFile))
   if (!relative.startsWith(".")) relative = `./${relative}`
-  return relative.replace(/\.ts$/, ".js")
+  return relative
 }
 
 const siteKey = (dir: string) => dir === "" ? "." : dir
