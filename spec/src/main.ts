@@ -1,5 +1,5 @@
 import { HttpRouter } from "effect/http"
-import { listen, observeBuild, routerConfig } from "return"
+import { listen, observeBuild, routerConfig } from "@chr33s/return"
 import { applicationLayer } from "./application.ts"
 import { ApiLive } from "./routes.gen.ts"
 

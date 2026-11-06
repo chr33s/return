@@ -1,6 +1,6 @@
-# return
+# @chr33s/return
 
-`return` is a file router for Effect 4.1. A `route.ts` file declares endpoints. `return-generate` reads a routes directory and writes one `HttpApi`.
+`@chr33s/return` is a file router for Effect 4.1. A `route.ts` file declares endpoints. `return-generate` reads a routes directory and writes one `HttpApi`.
 
 ## Rules
 
@@ -16,7 +16,7 @@
 
 ```ts
 import { Effect, Schema } from "effect"
-import { Route } from "return"
+import { Route } from "@chr33s/return"
 
 const User = Schema.Struct({
   id: Schema.String,
@@ -34,20 +34,20 @@ Place that file at `src/routes/users/route.ts`.
 
 ## The example
 
-`spec/` is a separate package. It depends on this package with `"return": "file:.."` and imports it by name:
+`spec/` is a separate package. It depends on this package with `"@chr33s/return": "file:.."` and imports it by name:
 
 ```ts
-import { Route } from "return"
+import { Route } from "@chr33s/return"
 ```
 
 Node 26 runs the TypeScript. Both packages pin TypeScript 7. From `spec/`, the scripts are `generate`, `dev`, `start`, and `test`.
 
 ## Vite
 
-`return/vite` puts this router and a Vite SPA on one origin. Vite 7 or 8 is an optional peer dependency.
+`@chr33s/return/vite` puts this router and a Vite SPA on one origin. Vite 7 or 8 is an optional peer dependency.
 
 ```ts
-import { returnVite, listen } from "return/vite"
+import { returnVite, listen } from "@chr33s/return/vite"
 ```
 
 `returnVite` answers `/api` during dev and preview and strips that prefix. The router receives `/users`. `vite build` remains a static client build. `listen` serves `dist` and falls back to `index.html` for a client route.

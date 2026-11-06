@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect"
 import { CurrentUser, RequireUser } from "../../auth.ts"
-import { Route } from "return"
+import { Route } from "@chr33s/return"
 
 export const GET = Route.get(
   "getMe",

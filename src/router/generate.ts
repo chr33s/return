@@ -187,8 +187,8 @@ const render = (
       line: `import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/http-api"`
     },
     {
-      specifier: "return",
-      line: `import { applyEndpointMiddleware, buildDirectory, selectSite } from "return"`
+      specifier: "@chr33s/return",
+      line: `import { applyEndpointMiddleware, buildDirectory, selectSite } from "@chr33s/return"`
     }
   ]
   const aliases = new Map<string, string>()

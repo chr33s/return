@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "effect": "4.1.0",
-    "return": "file:.."
+    "@chr33s/return": "file:.."
   },
   "devDependencies": {
     "@types/node": "26.6.6",

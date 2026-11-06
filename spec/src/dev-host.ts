@@ -3,7 +3,7 @@ import { registerHooks } from "node:module"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import { HttpRouter } from "effect/http"
-import { createReloadController, generateProject, listen, observeBuild, routerConfig } from "return"
+import { createReloadController, generateProject, listen, observeBuild, routerConfig } from "@chr33s/return"
 import { applicationLayer } from "./application.ts"
 
 const here = path.dirname(fileURLToPath(import.meta.url))

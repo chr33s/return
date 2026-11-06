@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import { Route } from "return"
+import { Route } from "@chr33s/return"
 
 export let meHits = 0
 

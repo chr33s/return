@@ -1,5 +1,5 @@
 import { HttpRouter } from "effect/http"
-import { routerConfig } from "return"
+import { routerConfig } from "@chr33s/return"
 import { applicationLayer } from "../src/application.ts"
 import { makeApiLive } from "../src/routes.gen.ts"
 
