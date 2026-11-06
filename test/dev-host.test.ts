@@ -205,4 +205,68 @@ describe("dev host reload", () => {
     assert.equal(loads, 1)
     await controller.dispose()
   })
+
+  it("keeps the running graph when generate throws", async () => {
+    const logs: string[] = []
+    let fail = false
+    const controller = createReloadController({
+      generate: async () => {
+        if (fail) throw new Error("generate blew up")
+        return { changed: true, diagnostics: [] }
+      },
+      load: async () => ({
+        handler: async () => new Response("g1"),
+        dispose: async () => {}
+      }),
+      log: (line) => {
+        logs.push(line)
+      }
+    })
+    await controller.reload()
+    fail = true
+    await controller.reload()
+    assert.equal(await (await controller.handle(new Request("http://127.0.0.1/"))).text(), "g1")
+    assert.match(logs.join("\n"), /generate blew up/)
+    await controller.dispose()
+  })
+
+  it("discards a graph that finishes loading after shutdown", async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>(resolve => {
+      release = resolve
+    })
+    let entered: () => void = () => {}
+    const enteredGate = new Promise<void>(resolve => {
+      entered = resolve
+    })
+    const disposed: string[] = []
+    let loads = 0
+    const controller = createReloadController({
+      generate: async () => ({ changed: true, diagnostics: [] }),
+      load: async () => {
+        loads += 1
+        const name = `g${loads}`
+        if (loads === 2) {
+          entered()
+          await gate
+        }
+        return {
+          handler: async () => new Response(name),
+          dispose: async () => {
+            disposed.push(name)
+          }
+        }
+      },
+      log: () => {}
+    })
+    await controller.reload()
+    const second = controller.reload()
+    await enteredGate
+    const closing = controller.dispose()
+    release()
+    await second
+    await closing
+    assert.deepEqual(disposed, ["g2", "g1"])
+    assert.equal((await controller.handle(new Request("http://127.0.0.1/"))).status, 503)
+  })
 })

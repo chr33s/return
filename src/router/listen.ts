@@ -19,12 +19,13 @@ export const nodeRequestToWeb = async (req: IncomingMessage, requestUrl?: URL): 
   return new Request(url, { method, headers, body: Buffer.concat(chunks) })
 }
 
-export const writeWebResponse = async (res: ServerResponse, response: Response) => {
+export const writeWebResponse = async (res: ServerResponse, response: Response, method?: string) => {
   res.statusCode = response.status
   response.headers.forEach((value, key) => {
     res.appendHeader(key, value)
   })
-  if (response.body === null) {
+  if (method === "HEAD" || response.body === null) {
+    await response.body?.cancel()
     res.end()
     return
   }
@@ -41,7 +42,7 @@ export const listen = (
       try {
         const request = await nodeRequestToWeb(req)
         const response = await handler(request)
-        await writeWebResponse(res, response)
+        await writeWebResponse(res, response, req.method)
       } catch (error) {
         console.error(error)
         if (!res.headersSent) res.statusCode = 500

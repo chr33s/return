@@ -14,6 +14,7 @@ export interface ReturnHostOptions {
   readonly projectRoot?: string
   /** Layer passed to `HttpRouter.toWebHandler`. The host builds, swaps, and disposes it. */
   readonly createLayer: (mod: { readonly makeApiLive: () => unknown }) => unknown
+  readonly log?: (line: string) => void
 }
 
 let hooksReady = false
@@ -57,7 +58,9 @@ export const createReturnHost = (options: ReturnHostOptions, watchRoutes: boolea
   let watcher: FSWatcher | undefined
   let timer: NodeJS.Timeout | undefined
 
+  const log = options.log ?? ((line: string) => console.error(line))
   const controller = createReloadController({
+    log,
     generate: () => {
       const gen = String(++generation)
       return generateProject({
@@ -90,7 +93,9 @@ export const createReturnHost = (options: ReturnHostOptions, watchRoutes: boolea
     watcher = watch(routesDir, { recursive: true }, () => {
       if (timer !== undefined) clearTimeout(timer)
       timer = setTimeout(() => {
-        void controller.reload()
+        void controller.reload().catch(error => {
+          log(error instanceof Error ? error.message : String(error))
+        })
       }, 50)
     })
   }

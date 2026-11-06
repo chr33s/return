@@ -18,3 +18,19 @@ export const stripPrefix = (pathname: string, prefix: string) => {
   const rest = pathname.slice(prefix.length)
   return rest === "" ? "/" : rest
 }
+
+/** Vite's `base`. `/` means the SPA is not mounted under a prefix. */
+export const normalizeBase = (base: string | undefined) => {
+  if (base === undefined || base === "" || base === "/") return "/"
+  const withSlash = base.startsWith("/") ? base : `/${base}`
+  return withSlash.endsWith("/") ? withSlash : `${withSlash}/`
+}
+
+/**
+ * A base of `/api/` owns `/api/` and `/api/…`. The exact path `/api` is not
+ * that base, so `fetch("/api")` can still hit the router.
+ */
+export const claimedByBase = (pathname: string, base: string) => {
+  if (base === "/") return false
+  return pathname === base || pathname.startsWith(base)
+}

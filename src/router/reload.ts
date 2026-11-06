@@ -31,6 +31,7 @@ export const createReloadController = (options: ReloadControllerOptions) => {
   let current: Graph | undefined
   let running: Promise<void> | undefined
   let again = false
+  let stopped = false
   const draining = new Set<Graph>()
 
   const finish = (graph: Graph) => {
@@ -65,7 +66,15 @@ export const createReloadController = (options: ReloadControllerOptions) => {
   }
 
   const attempt = async () => {
-    const generated = await options.generate()
+    if (stopped) return
+    let generated: { readonly changed: boolean, readonly diagnostics: readonly string[] }
+    try {
+      generated = await options.generate()
+    } catch (error) {
+      log(error instanceof Error ? error.message : String(error))
+      return
+    }
+    if (stopped) return
     if (generated.diagnostics.length > 0) {
       for (const line of generated.diagnostics) log(line)
       return
@@ -78,6 +87,12 @@ export const createReloadController = (options: ReloadControllerOptions) => {
       log(error instanceof Error ? error.message : String(error))
       return
     }
+    if (stopped) {
+      await loaded.dispose().catch(error => {
+        log(error instanceof Error ? error.message : String(error))
+      })
+      return
+    }
     const next: Graph = { ...loaded, inflight: 0, retiring: false, disposed: false }
     const previous = current
     current = next
@@ -85,6 +100,7 @@ export const createReloadController = (options: ReloadControllerOptions) => {
   }
 
   const reload = () => {
+    if (stopped) return Promise.resolve()
     if (running !== undefined) {
       again = true
       return running
@@ -92,9 +108,10 @@ export const createReloadController = (options: ReloadControllerOptions) => {
     running = (async () => {
       try {
         do {
+          if (stopped) return
           again = false
           await attempt()
-        } while (again)
+        } while (again && !stopped)
       } finally {
         running = undefined
       }
@@ -103,6 +120,9 @@ export const createReloadController = (options: ReloadControllerOptions) => {
   }
 
   const dispose = async () => {
+    stopped = true
+    const inflight = running
+    if (inflight !== undefined) await inflight
     const graph = current
     current = undefined
     const pending = [...draining]

@@ -25,7 +25,7 @@
     "effect": "4.1.0"
   },
   "peerDependencies": {
-    "vite": ">=6 <9"
+    "vite": ">=7 <9"
   },
   "peerDependenciesMeta": {
     "vite": {

@@ -4,6 +4,8 @@ import { defaultPrefix, normalizePrefix } from "./prefix.ts"
 
 export interface ListenOptions {
   readonly prefix?: string
+  /** Vite `base` the SPA was built with. Default `/`. */
+  readonly base?: string
   /** Built SPA directory (`vite build` output). */
   readonly dist: string
   readonly handler: (request: Request) => Promise<Response>
@@ -17,8 +19,15 @@ export const listen = (options: ListenOptions) => {
   const server = createServer((req, res) => {
     void dispatch(req, res, undefined, {
       prefix,
+      base: options.base,
       handler: options.handler,
       dist: options.dist
+    }).catch(error => {
+      console.error(error)
+      if (!res.headersSent && !res.writableEnded) {
+        res.statusCode = 500
+        res.end()
+      }
     })
   })
   server.listen(options.port ?? 3000, options.host ?? "127.0.0.1")
