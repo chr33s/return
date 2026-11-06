@@ -7,13 +7,18 @@
   "engines": {
     "node": ">=26 <27"
   },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "return-generate": "./src/router/cli.ts"
+  },
+  "files": [
+    "src"
+  ],
   "scripts": {
-    "generate": "node src/router/generate.ts --routes spec/src/routes --out spec/src/routes.gen.ts",
-    "generate:check": "node src/router/generate.ts --routes spec/src/routes --out spec/src/routes.gen.ts --check",
     "typecheck": "tsc --noEmit",
-    "test": "node src/router/generate.ts --routes spec/src/routes --out spec/src/routes.gen.ts --check && tsc --noEmit && node --test test/**/*.test.ts spec/test/**/*.test.ts",
-    "start": "node spec/src/main.ts",
-    "dev": "node spec/src/dev-host.ts"
+    "test": "tsc --noEmit && node --test test/**/*.test.ts"
   },
   "dependencies": {
     "effect": "4.1.0"

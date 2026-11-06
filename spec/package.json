@@ -1,0 +1,26 @@
+{
+  "name": "return-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=26 <27"
+  },
+  "scripts": {
+    "generate": "return-generate --routes src/routes --out src/routes.gen.ts",
+    "generate:check": "return-generate --routes src/routes --out src/routes.gen.ts --check",
+    "typecheck": "tsc --noEmit",
+    "test": "return-generate --routes src/routes --out src/routes.gen.ts --check && tsc --noEmit && node --test test/**/*.test.ts",
+    "start": "node src/main.ts",
+    "dev": "node src/dev-host.ts"
+  },
+  "dependencies": {
+    "effect": "4.1.0",
+    "return": "file:.."
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2"
+  }
+}

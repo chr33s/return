@@ -154,7 +154,7 @@ describe("generator", () => {
 
   it("checks the committed routes.gen.ts", async () => {
     const result = await exec(process.execPath, [
-      "src/router/generate.ts",
+      "src/router/cli.ts",
       "--routes",
       "spec/src/routes",
       "--out",

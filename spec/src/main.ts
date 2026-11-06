@@ -1,8 +1,6 @@
 import { HttpRouter } from "effect/http"
+import { listen, observeBuild, routerConfig } from "return"
 import { applicationLayer } from "./application.ts"
-import { routerConfig } from "../../src/router/config.ts"
-import { listen } from "../../src/router/listen.ts"
-import { observeBuild } from "../../src/router/observe-build.ts"
 import { ApiLive } from "./routes.gen.ts"
 
 const watched = observeBuild(applicationLayer(ApiLive))

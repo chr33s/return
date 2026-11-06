@@ -1,7 +1,7 @@
 import { Layer, Schema } from "effect"
 import { readdir, readFile, mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
-import { pathToFileURL, fileURLToPath } from "node:url"
+import { pathToFileURL } from "node:url"
 import { isRoute, type AnyRoute, type RouteMethodName } from "./Route.ts"
 
 const methods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const
@@ -180,7 +180,6 @@ const render = (
   routes: readonly MethodRoute[],
   layers: ReadonlyMap<string, string>
 ) => {
-  const here = path.dirname(fileURLToPath(import.meta.url))
   const imports: Array<{ readonly specifier: string, readonly line: string }> = [
     { specifier: "effect", line: `import { Context, Effect, Exit, Layer, Scope } from "effect"` },
     {
@@ -188,12 +187,8 @@ const render = (
       line: `import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/http-api"`
     },
     {
-      specifier: specifierBetween(outFile, path.join(here, "Route.ts")),
-      line: `import { applyEndpointMiddleware } from "${specifierBetween(outFile, path.join(here, "Route.ts"))}"`
-    },
-    {
-      specifier: specifierBetween(outFile, path.join(here, "context-tree.ts")),
-      line: `import { buildDirectory, selectSite } from "${specifierBetween(outFile, path.join(here, "context-tree.ts"))}"`
+      specifier: "return",
+      line: `import { applyEndpointMiddleware, buildDirectory, selectSite } from "return"`
     }
   ]
   const aliases = new Map<string, string>()
@@ -507,31 +502,3 @@ const insertPath = (
   }
 }
 
-const isMain = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-
-if (isMain) {
-  const flag = (name: string) => {
-    const index = process.argv.indexOf(name)
-    return index === -1 ? undefined : process.argv[index + 1]
-  }
-  const routesArg = flag("--routes")
-  const outArg = flag("--out")
-  if (routesArg === undefined || outArg === undefined || routesArg.startsWith("--") || outArg.startsWith("--")) {
-    console.error("usage: node src/router/generate.ts --routes <dir> --out <file> [--check]")
-    process.exitCode = 1
-  } else {
-    const projectRoot = process.cwd()
-    const result = await generateProject({
-      routesDir: path.resolve(projectRoot, routesArg),
-      outFile: path.resolve(projectRoot, outArg),
-      projectRoot,
-      check: process.argv.includes("--check")
-    })
-    if (result.diagnostics.length > 0) {
-      for (const line of result.diagnostics) console.error(line)
-      process.exitCode = 1
-    } else {
-      process.stdout.write(result.wrote ? "wrote\n" : "unchanged\n")
-    }
-  }
-}

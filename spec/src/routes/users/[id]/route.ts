@@ -1,7 +1,7 @@
 import { Effect } from "effect"
 import { Schema } from "effect"
 import { User, UserNotFoundResponse, Users, getUserById } from "../domain.ts"
-import { Route } from "../../../../../src/router/Route.ts"
+import { Route } from "return"
 
 export const GET = Route.get(
   "getUser",
