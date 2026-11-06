@@ -79,6 +79,118 @@ describe("dev host reload", () => {
     assert.deepEqual(disposed, ["old"])
   })
 
+  it("installs the later graph when a second reload starts during the first", async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>(resolve => {
+      release = resolve
+    })
+    let started: () => void = () => {}
+    const startedGate = new Promise<void>(resolve => {
+      started = resolve
+    })
+    const disposed: string[] = []
+    let loads = 0
+    const controller = createReloadController({
+      generate: async () => ({ changed: true, diagnostics: [] }),
+      load: async () => {
+        loads += 1
+        const name = `g${loads}`
+        if (loads === 1) {
+          started()
+          await gate
+        }
+        return {
+          handler: async () => new Response(name),
+          dispose: async () => {
+            disposed.push(name)
+          }
+        }
+      }
+    })
+    const first = controller.reload()
+    await startedGate
+    const second = controller.reload()
+    release()
+    await first
+    await second
+    assert.equal(await (await controller.handle(new Request("http://127.0.0.1/"))).text(), "g2")
+    assert.deepEqual(disposed, ["g1"])
+    await controller.dispose()
+  })
+
+  it("keeps the installed graph when the follow-up load fails", async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>(resolve => {
+      release = resolve
+    })
+    let started: () => void = () => {}
+    const startedGate = new Promise<void>(resolve => {
+      started = resolve
+    })
+    let loads = 0
+    const controller = createReloadController({
+      generate: async () => ({ changed: true, diagnostics: [] }),
+      load: async () => {
+        loads += 1
+        if (loads === 1) {
+          started()
+          await gate
+          return { handler: async () => new Response("g1"), dispose: async () => {} }
+        }
+        throw new Error("build failed")
+      },
+      log: () => {}
+    })
+    const first = controller.reload()
+    await startedGate
+    const second = controller.reload()
+    release()
+    await first
+    await second
+    assert.equal(await (await controller.handle(new Request("http://127.0.0.1/"))).text(), "g1")
+    await controller.dispose()
+  })
+
+  it("finalizes a draining graph on shutdown without waiting for the timer", async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>(resolve => {
+      release = resolve
+    })
+    const disposed: string[] = []
+    let which = "old"
+    const timers: Array<() => void> = []
+    const controller = createReloadController({
+      generate: async () => ({ changed: true, diagnostics: [] }),
+      load: async () => {
+        const name = which
+        return {
+          handler: async () => {
+            if (name === "old") await gate
+            return new Response(name)
+          },
+          dispose: async () => {
+            disposed.push(name)
+          }
+        }
+      },
+      schedule: (fn, ms) => {
+        assert.equal(ms, drainMsDefault)
+        timers.push(fn)
+        return { cancel: () => {} }
+      }
+    })
+    await controller.reload()
+    const pending = controller.handle(new Request("http://127.0.0.1/"))
+    which = "new"
+    await controller.reload()
+    assert.deepEqual(disposed, [])
+    assert.equal(timers.length, 1)
+    await controller.dispose()
+    assert.deepEqual(disposed, ["new", "old"])
+    release()
+    assert.equal(await (await pending).text(), "old")
+  })
+
   it("does not reload when generation is unchanged", async () => {
     let loads = 0
     const controller = createReloadController({

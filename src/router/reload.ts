@@ -29,9 +29,13 @@ export const createReloadController = (options: ReloadControllerOptions) => {
     return { cancel: () => clearTimeout(timer) }
   })
   let current: Graph | undefined
+  let running: Promise<void> | undefined
+  let again = false
+  const draining = new Set<Graph>()
 
   const finish = (graph: Graph) => {
     if (graph.done !== undefined) return graph.done
+    draining.delete(graph)
     graph.disposed = true
     graph.timer?.cancel()
     graph.done = graph.dispose()
@@ -44,6 +48,7 @@ export const createReloadController = (options: ReloadControllerOptions) => {
       finish(graph)
       return
     }
+    draining.add(graph)
     graph.timer = schedule(() => finish(graph), drainMs)
   }
 
@@ -59,7 +64,7 @@ export const createReloadController = (options: ReloadControllerOptions) => {
     }
   }
 
-  const reload = async () => {
+  const attempt = async () => {
     const generated = await options.generate()
     if (generated.diagnostics.length > 0) {
       for (const line of generated.diagnostics) log(line)
@@ -79,13 +84,35 @@ export const createReloadController = (options: ReloadControllerOptions) => {
     if (previous !== undefined) retire(previous)
   }
 
+  const reload = () => {
+    if (running !== undefined) {
+      again = true
+      return running
+    }
+    running = (async () => {
+      try {
+        do {
+          again = false
+          await attempt()
+        } while (again)
+      } finally {
+        running = undefined
+      }
+    })()
+    return running
+  }
+
   const dispose = async () => {
     const graph = current
     current = undefined
+    const pending = [...draining]
+    const waits: Array<Promise<void>> = []
     if (graph !== undefined) {
       graph.retiring = true
-      await finish(graph)
+      waits.push(finish(graph))
     }
+    for (const retired of pending) waits.push(finish(retired))
+    await Promise.all(waits)
   }
 
   return { reload, handle, dispose }
