@@ -1,0 +1,4 @@
+node_modules/
+*.tsbuildinfo
+.generate-fixtures/
+.vite-fixtures/

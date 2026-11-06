@@ -1,0 +1,40 @@
+{
+  "name": "@chr33s/return",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=26 <27"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./vite": "./src/vite.ts"
+  },
+  "bin": {
+    "return-generate": "./src/router/cli.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsc --noEmit && node --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "effect": "4.1.0"
+  },
+  "peerDependencies": {
+    "vite": ">=8.3 <9"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2",
+    "vite": "^8.3.6"
+  }
+}
