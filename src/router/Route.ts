@@ -117,7 +117,8 @@ const define = <const Method extends RouteMethodName>(method: Method) =>
 }
 
 /**
- * Declares a GET endpoint. The directory is the path. `options` is the
+ * Declares a GET endpoint. A file route's directory is the path. A single-file
+ * app passes that URL to `HttpApiEndpoint` instead. `options` is the
  * `HttpApiEndpoint` set of `params`, `query`, `headers`, `payload`, `success`,
  * and `error`. There is no `path`, `status`, or `disableCodecs` field.
  */

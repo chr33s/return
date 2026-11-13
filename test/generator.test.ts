@@ -1,10 +1,10 @@
 import { execFile } from "node:child_process"
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { promisify } from "node:util"
 import assert from "node:assert/strict"
 import { after, describe, it } from "node:test"
-import { fileURLToPath } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import { generateProject } from "../src/router/generate.ts"
 
 const exec = promisify(execFile)
@@ -171,6 +171,37 @@ describe("generator", () => {
     assert.equal(new Set(scopes).size, scopes.length)
     assert.ok(scopes.includes("scope_root"))
     assert.ok(scopes.some(name => name !== "scope_root" && name.includes("root")))
+  })
+
+  it("uses one root scope when no layer.ts was discovered", async () => {
+    const bare = await tree("no-layer")
+    await writeRoute(
+      path.join(bare.routesDir, "users/route.ts"),
+      `export const GET = Route.get("listUsers", {}, () => Effect.void)`
+    )
+    await writeRoute(
+      path.join(bare.routesDir, "users/[id]/route.ts"),
+      `export const GET = Route.get("getUser", { params: { id: Schema.String } }, () => Effect.void)`
+    )
+    const result = await generateProject({
+      routesDir: bare.routesDir,
+      outFile: bare.outFile,
+      projectRoot: bare.root
+    })
+    assert.deepEqual(result.diagnostics, [])
+    const text = await readFile(bare.outFile, "utf8")
+    assert.equal(text.includes("Scope.fork"), false)
+    assert.equal(text.includes("buildDirectory"), false)
+    assert.equal(text.includes("selectSite"), false)
+    assert.equal(text.includes("Effect.provide"), false)
+    assert.match(text, /import \{ Layer \} from "effect"/)
+    await mkdir(path.join(bare.root, "node_modules", "@chr33s"), { recursive: true })
+    await symlink(projectRoot, path.join(bare.root, "node_modules", "@chr33s", "return"))
+    const loaded = await import(pathToFileURL(bare.outFile).href) as { readonly ApiLive: unknown }
+    assert.equal(typeof loaded.ApiLive, "object")
+    assert.match(text, /HttpApiEndpoint\.get\([\s\S]*"\/users"/)
+    assert.match(text, /HttpApiEndpoint\.get\([\s\S]*"\/users\/:id"/)
+    assert.equal((text.match(/HttpApiBuilder\.group/g) ?? []).length, 1)
   })
 
   it("checks the committed routes.gen.ts", async () => {

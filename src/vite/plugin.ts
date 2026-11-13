@@ -4,8 +4,8 @@ import { dispatch } from "./dispatch.ts"
 import { createReturnHost, type ReturnHostOptions } from "./host.ts"
 import { defaultPrefix, normalizePrefix } from "./prefix.ts"
 
-export interface ReturnViteOptions extends ReturnHostOptions {
-  /** Requests under this prefix are the file router. Default `/api`. */
+export type ReturnViteOptions = ReturnHostOptions & {
+  /** Requests under this prefix are the API. Default `/api`. */
   readonly prefix?: string
 }
 
@@ -14,7 +14,11 @@ interface OpenHost {
 }
 
 /**
- * One origin for a Vite SPA and this file router.
+ * One origin for a Vite SPA and this API.
+ *
+ * Pass `routesDir` to run the file router, or `layer` for a hand-written
+ * `ApiLive`. A `layer` is served the same way as the generated one and does
+ * not run `return-generate`.
  *
  * On Vite 8.3 and later, `use` inside `configureServer` runs after the host
  * check and before Vite's transform, static, and HTML middleware. Returning a

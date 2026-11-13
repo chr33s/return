@@ -1,3 +1,4 @@
+import type { Layer } from "effect"
 import { watch, type FSWatcher } from "node:fs"
 import { registerHooks } from "node:module"
 import path from "node:path"
@@ -8,13 +9,43 @@ import { observeBuild } from "../router/observe-build.ts"
 import { createReloadController } from "../router/reload.ts"
 import { routerConfig } from "../router/config.ts"
 
-export interface ReturnHostOptions {
+interface FileRouterHostOptions {
   readonly routesDir: string
   readonly outFile: string
   readonly projectRoot?: string
   /** Layer passed to `HttpRouter.toWebHandler`. The host builds, swaps, and disposes it. */
   readonly createLayer: (mod: { readonly makeApiLive: () => unknown }) => unknown
   readonly log?: (line: string) => void
+}
+
+interface LayerHostOptions {
+  /**
+   * Hand-written `ApiLive`, or the same layer a file-router `createLayer` returns.
+   * Built, served, and disposed like the generated layer. Discovery does not run.
+   */
+  readonly layer: Layer.Layer<never, any, any>
+  readonly log?: (line: string) => void
+}
+
+/** A routes directory runs `return-generate`. A `layer` is a hand-written `ApiLive`. */
+export type ReturnHostOptions = FileRouterHostOptions | LayerHostOptions
+
+const isFileRouter = (options: ReturnHostOptions): options is FileRouterHostOptions =>
+  "routesDir" in options
+
+const openLayer = async (layer: unknown) => {
+  const watched = observeBuild(layer as never)
+  const web = HttpRouter.toWebHandler(watched.layer as never, { disableLogger: true, routerConfig })
+  try {
+    await watched.ready
+  } catch (error) {
+    await web.dispose()
+    throw error
+  }
+  return {
+    handler: web.handler,
+    dispose: () => web.dispose()
+  }
 }
 
 let hooksReady = false
@@ -50,6 +81,23 @@ const importGeneration = (file: string, gen: string) => {
 }
 
 export const createReturnHost = (options: ReturnHostOptions, watchRoutes: boolean) => {
+  if ("layer" in options && "routesDir" in options) {
+    throw new Error("returnVite accepts a layer or a routes directory, not both")
+  }
+  const log = options.log ?? ((line: string) => console.error(line))
+  if (!isFileRouter(options)) {
+    const controller = createReloadController({
+      log,
+      generate: async () => ({ changed: false, diagnostics: [] }),
+      load: () => openLayer(options.layer)
+    })
+    return {
+      handle: controller.handle,
+      ready: () => controller.reload(),
+      close: () => controller.dispose()
+    }
+  }
+
   ensureReloadHooks()
   const projectRoot = options.projectRoot ?? process.cwd()
   const routesDir = path.resolve(projectRoot, options.routesDir)
@@ -59,7 +107,6 @@ export const createReturnHost = (options: ReturnHostOptions, watchRoutes: boolea
   let watcher: FSWatcher | undefined
   let timer: NodeJS.Timeout | undefined
 
-  const log = options.log ?? ((line: string) => console.error(line))
   const controller = createReloadController({
     log,
     generate: () => {
@@ -75,18 +122,7 @@ export const createReturnHost = (options: ReturnHostOptions, watchRoutes: boolea
       const mod = await importGeneration(outFile, `${hostToken}.${++generation}`) as {
         makeApiLive: () => unknown
       }
-      const watched = observeBuild(options.createLayer(mod) as never)
-      const web = HttpRouter.toWebHandler(watched.layer as never, { disableLogger: true, routerConfig })
-      try {
-        await watched.ready
-      } catch (error) {
-        await web.dispose()
-        throw error
-      }
-      return {
-        handler: web.handler,
-        dispose: () => web.dispose()
-      }
+      return openLayer(options.createLayer(mod))
     }
   })
 
