@@ -202,12 +202,12 @@ const render = (
         : `import { applyEndpointMiddleware, buildDirectory, selectSite } from "@chr33s/return"`
     }
   ]
-  if (layers.size > 0) {
-    imports.push({
-      specifier: "effect",
-      line: `import { Context, Effect, Exit, Layer, Scope } from "effect"`
-    })
-  }
+  imports.push({
+    specifier: "effect",
+    line: layers.size === 0
+      ? `import { Layer } from "effect"`
+      : `import { Context, Effect, Exit, Layer, Scope } from "effect"`
+  })
   const aliases = new Map<string, string>()
   const used = new Set<string>()
   const unique = (base: string) => {
