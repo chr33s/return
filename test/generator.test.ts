@@ -173,6 +173,33 @@ describe("generator", () => {
     assert.ok(scopes.some(name => name !== "scope_root" && name.includes("root")))
   })
 
+  it("uses one root scope when no layer.ts was discovered", async () => {
+    const bare = await tree("no-layer")
+    await writeRoute(
+      path.join(bare.routesDir, "users/route.ts"),
+      `export const GET = Route.get("listUsers", {}, () => Effect.void)`
+    )
+    await writeRoute(
+      path.join(bare.routesDir, "users/[id]/route.ts"),
+      `export const GET = Route.get("getUser", { params: { id: Schema.String } }, () => Effect.void)`
+    )
+    const result = await generateProject({
+      routesDir: bare.routesDir,
+      outFile: bare.outFile,
+      projectRoot: bare.root
+    })
+    assert.deepEqual(result.diagnostics, [])
+    const text = await readFile(bare.outFile, "utf8")
+    assert.equal(text.includes("Scope.fork"), false)
+    assert.equal(text.includes("buildDirectory"), false)
+    assert.equal(text.includes("selectSite"), false)
+    assert.equal(text.includes("Effect.provide"), false)
+    assert.equal(text.includes("from \"effect\""), false)
+    assert.match(text, /HttpApiEndpoint\.get\([\s\S]*"\/users"/)
+    assert.match(text, /HttpApiEndpoint\.get\([\s\S]*"\/users\/:id"/)
+    assert.equal((text.match(/HttpApiBuilder\.group/g) ?? []).length, 1)
+  })
+
   it("checks the committed routes.gen.ts", async () => {
     const result = await exec(process.execPath, [
       "src/router/cli.ts",

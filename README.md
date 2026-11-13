@@ -1,6 +1,66 @@
 # @chr33s/return
 
-`@chr33s/return` is a file router for Effect 4.1. A `route.ts` file declares endpoints. `return-generate` reads a routes directory and writes one `HttpApi`.
+`@chr33s/return` builds an Effect 4.1 `HttpApi`. `Route.get`, `Route.post`, `Route.put`, `Route.patch`, and `Route.delete` declare handlers. The file router is optional.
+
+## One file
+
+A single file builds `HttpApi` and `ApiLive` by hand and does not run `return-generate`. The URL is the path argument of `HttpApiEndpoint`. There is one root scope, because nothing discovers a `layer.ts`. `main` and `@chr33s/return/vite` take that `ApiLive` the same way they take a generated one.
+
+```ts
+// src/api.ts
+import { Effect, Layer, Schema } from "effect"
+import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/http-api"
+import { applyEndpointMiddleware, Route } from "@chr33s/return"
+
+const User = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String
+})
+
+const listUsers = Route.get(
+  "listUsers",
+  { success: Schema.Array(User) },
+  () => Effect.succeed([{ id: "1", name: "Ada" }])
+)
+
+const getUser = Route.get(
+  "getUser",
+  {
+    params: { id: Schema.String },
+    success: User
+  },
+  ({ params }) => Effect.succeed({ id: params.id, name: "Ada" })
+)
+
+export const Api = HttpApi.make("Api").add(
+  HttpApiGroup.make("routes").add(
+    applyEndpointMiddleware(
+      HttpApiEndpoint.get(listUsers.operationId, "/users", listUsers.options),
+      listUsers.middlewares
+    ),
+    applyEndpointMiddleware(
+      HttpApiEndpoint.get(getUser.operationId, "/users/:id", getUser.options),
+      getUser.middlewares
+    )
+  )
+)
+
+export const ApiLive = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(
+    HttpApiBuilder.group(Api, "routes", (handlers) =>
+      handlers
+        .handle(listUsers.operationId, (request) => listUsers.handler(request))
+        .handle(getUser.operationId, (request) => getUser.handler(request))
+    )
+  )
+)
+```
+
+`src/main.ts` is the listener below, with `import { ApiLive } from "./api.ts"` instead of `./routes.gen.ts`.
+
+## File router
+
+A `route.ts` file declares endpoints. `return-generate` is the only discovery: it reads a routes directory and writes one `HttpApi`. The directory is the URL. `Route` still does not take a path. The generator passes that URL to `HttpApiEndpoint`. When the directory has no `layer.ts`, the generated `ApiLive` uses one root scope.
 
 ## Rules
 
@@ -126,10 +186,37 @@ process.once("SIGTERM", () => void shutdown())
 
 ## Vite
 
-`@chr33s/return/vite` puts this router and a Vite SPA on one origin. Vite 8.3 or later, before 9, is an optional peer dependency.
+`@chr33s/return/vite` puts this API and a Vite SPA on one origin. Vite 8.3 or later, before 9, is an optional peer dependency.
 
 ```ts
 import { returnVite, listen } from "@chr33s/return/vite"
+import { Layer } from "effect"
+import { HttpServer } from "effect/http"
+import { ApiLive } from "./api.ts"
+
+export default {
+  plugins: [
+    returnVite({
+      layer: ApiLive.pipe(Layer.provide(HttpServer.layerServices))
+    })
+  ]
+}
 ```
 
-`returnVite` answers `/api` during dev and preview and strips that prefix. The router receives `/users`. `vite build` remains a static client build. `listen` serves `dist` and falls back to `index.html` for a client route.
+`layer` is the hand-written `ApiLive` after platform services, the same value `main` passes to `HttpRouter.toWebHandler`. The file router passes `routesDir` instead, and that path is the one that runs `return-generate`. `createLayer` returns the layer `toWebHandler` receives, so wrap `makeApiLive()` with those platform services the same way `main` wraps `ApiLive`:
+
+```ts
+import { Layer } from "effect"
+import { HttpServer } from "effect/http"
+
+returnVite({
+  routesDir: "src/routes",
+  outFile: "src/routes.gen.ts",
+  createLayer: (mod) =>
+    (mod.makeApiLive() as Layer.Layer<never, never, never>).pipe(
+      Layer.provide(HttpServer.layerServices)
+    )
+})
+```
+
+`returnVite` answers `/api` during dev and preview and strips that prefix. The API receives `/users`. `vite build` remains a static client build. `listen` serves `dist` and falls back to `index.html` for a client route.
